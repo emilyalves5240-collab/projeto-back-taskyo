@@ -18,6 +18,8 @@ function ehErroEmailDuplicado(erro) {
   return erro?.code === '23505' || erro?.message?.includes('UNIQUE constraint failed');
 }
 
+
+
 // GET /empresas — lista todos (sem o campo senha)
 export async function listar(req, res) {
   try {
