@@ -23,7 +23,7 @@ export async function listar(req, res) {
   try {
     const db = await getDatabase();
     const usuarios = await db.all(
-      'SELECT id, nome, email, telefone, foto FROM usuarios ORDER BY id'
+      'SELECT id, empresa_id, nome, email, telefone, perfil, ativo, criado_em, foto FROM usuarios ORDER BY id'
     );
     res.json(usuarios);
   } catch (erro) {
@@ -38,7 +38,7 @@ export async function buscarPorId(req, res) {
   try {
     const db = await getDatabase();
     const usuario = await db.get(
-      'SELECT id, nome, email, telefone, foto FROM usuarios WHERE id = ?',
+      'SELECT id, empresa_id, nome, email, telefone, perfil, ativo, criado_em, foto FROM usuarios WHERE id = ?',
       [id]
     );
 
@@ -54,9 +54,9 @@ export async function buscarPorId(req, res) {
 
 // POST /usuarios — cadastro público
 export async function criar(req, res) {
-  const { nome, email, telefone, senha } = req.body;
+  const { nome, empresa_id, email, telefone, perfil, senha } = req.body;
 
-  if (!nome || !email || !telefone || !senha) {
+  if (!nome || empresa_id > 0 || !email || !perfil || !telefone || !senha) {
     return res.status(400).json({ mensagem: 'Campos obrigatórios ausentes.' });
   }
 
@@ -75,15 +75,17 @@ export async function criar(req, res) {
     const senhaHash = await bcrypt.hash(senha, SALT_ROUNDS);
 
     const resultado = await db.run(
-      'INSERT INTO usuarios (nome, email, telefone, senha) VALUES (?, ?, ?, ?)',
-      [nome, email, telefone, senhaHash]
+      'INSERT INTO usuarios (nome, empresa_id, email, telefone, perfil, senha) VALUES (?, ?, ?, ?, ?, ?)',
+      [nome, empresa_id, email, telefone, perfil, senhaHash]
     );
 
     res.status(201).json({
       id: resultado.lastID,
       nome,
+      empresa_id,
       email,
       telefone,
+      perfil,
       foto: null
     });
   } catch (erro) {
@@ -109,7 +111,7 @@ export async function atualizar(req, res) {
     });
   }
 
-  const { nome, email, telefone, senha } = req.body;
+  const { nome,  empresa_id, email, telefone, perfil, senha } = req.body;
 
   try {
     let novaFotoUpload = null;
@@ -128,8 +130,10 @@ export async function atualizar(req, res) {
     }
 
     const novoNome = nome ?? atual.nome;
+    const novoEmpresa_id = empresa_id ?? atual.empresa_id
     const novoEmail = email ?? atual.email;
     const novoTelefone = telefone ?? atual.telefone;
+    const novoPerfil = perfil ?? atual.perfil
     const novaFoto = novaFotoUpload ?? req.body.foto ?? atual.foto;
     let novaSenha = atual.senha;
 
@@ -144,14 +148,16 @@ export async function atualizar(req, res) {
 
     await db.run(
       'UPDATE usuarios SET nome = ?, email = ?, telefone = ?, senha = ?, foto = ? WHERE id = ?',
-      [novoNome, novoEmail, novoTelefone, novaSenha, novaFoto, idAlvo]
+      [novoNome, novoEmpresa_id, novoEmail, novoTelefone,novoPerfil, novaSenha, novaFoto, idAlvo]
     );
 
     res.json({
       id: idAlvo,
       nome: novoNome,
+      empresa_id: novoEmpresa_id,
       email: novoEmail,
       telefone: novoTelefone,
+      perfil: novoPerfil,
       foto: novaFoto
     });
   } catch (erro) {
@@ -256,7 +262,7 @@ export async function perfil(req, res) {
   try {
     const db = await getDatabase();
     const usuario = await db.get(
-      'SELECT id, nome, email, telefone, foto FROM usuarios WHERE id = ?',
+      'SELECT id, empresa_id, nome, email, telefone, perfil, ativo, criado_em, fotoFROM usuarios WHERE id = ?',
       [req.usuarioId]
     );
 
